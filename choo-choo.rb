@@ -259,3 +259,9 @@ class Array
     "#{self[0..-2].join(separator)}#{oxford_comma ? ',' : ''} #{last_separator} #{self[-1]}"
   end
 end
+
+if ARGV.include?('--morning')
+  SlackPost.new(true)
+elsif ARGV.include?('--evening')
+  SlackPost.new(false)
+end
