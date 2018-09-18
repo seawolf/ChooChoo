@@ -40,8 +40,9 @@ class SlackPost
         {
             "fallback": e.message,
             "color": "#d72b3f",
-            "title": 'Error',
-            "text": e.message,
+            "title": e.message,
+            "text": "```#{e.backtrace.join("\n")}```",
+            "mrkdwn": true,
             "ts": Time.now.to_i
         }
     ])
