@@ -17,19 +17,7 @@ class SlackPost
   def initialize(is_morning_commute=true, budge=0)
     header = "Hello! Here's how your #{is_morning_commute ? 'morning' : 'evening'} commute looks today:"
     datetime = Time.now + budge.minutes
-    attachments = (morning_commute ? [
-        TrainLine.new('FTN', from: 'GLD', datetime: datetime), # Waterloo-Guildford-Portsmouth
-        TrainLine.new('FTN', from: 'BTN', datetime: datetime), # Brighton-Portsmouth
-        TrainLine.new('FTN', from: 'VIC', datetime: datetime), # Victoria-Portsmouth
-        TrainLine.new('FTN', from: 'LIT', datetime: datetime), # Littlehampton-Portsmouth
-        TrainLine.new('FTN', from: 'ESL', datetime: datetime), # Waterloo-Eastleigh-Portsmouth
-        TrainLine.new('FTN', to:   'HAV', datetime: datetime), # Portsmouth-Havant
-    ] : [
-        TrainLine.new('HAV', from: 'GLD', to: 'FTN', datetime: datetime), # Waterloo-Guildford-Portsmouth
-        TrainLine.new('HAV', from: 'BTN', to: 'FTN', datetime: datetime), # Brighton-Portsmouth
-        TrainLine.new('HAV', from: 'VIC', to: 'FTN', datetime: datetime), # Victoria-Portsmouth
-        TrainLine.new('HAV', from: 'LIT', to: 'FTN', datetime: datetime), # Littlehampton-Portsmouth
-    ]).map do |data|
+    attachments = attachments(is_morning_commute, datetime).map do |data|
       attachment_for_data(data)
     end
 
@@ -77,6 +65,13 @@ class SlackPost
     strs.join("\n")
   end
 
+  def attachments(is_morning_commute, datetime)
+    (is_morning_commute ? CONFIG.morning : CONFIG.evening).inject([]) do |attachments, line|
+      args = { at: line['at'], from: line['from'], to: line['to'], datetime: datetime }.keep_if {|k, v| v.present? }
+      attachments << TrainLine.new(args)
+    end
+  end
+
   def attachment_for_data(data)
     {
         "fallback": [ data.request_info, summary_for_data(data) ].join("\n"),
@@ -100,7 +95,7 @@ class SlackPost
 end
 
 class TrainLine
-  def initialize(at, from: nil, to: nil, datetime: Time.now)
+  def initialize(at:, from: nil, to: nil, datetime: Time.now)
     @_from_crs = from
     @_at_crs   = at
     @_to_crs   = to
