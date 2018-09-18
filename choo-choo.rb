@@ -1,21 +1,21 @@
 require 'yaml'
 require 'slack'
 
-config = OpenStruct.new(YAML.load_file('./config.yml'))
+CONFIG = OpenStruct.new(YAML.load_file('./config.yml'))
 
 Slack.configure do |slack|
-  slack.token = config.slack_token
+  slack.token = CONFIG.slack_token
 end
 
-SLACK_CHANNEL     = config.slack_channel
-RTT_API_USERNAME  = config.rtt_api_username
-RTT_API_PASSWORD  = config.rtt_api_password
-RTT_API_BASE      = config.rtt_api_base
-RTT_API_PREFIX    = config.rtt_api_prefix
+SLACK_CHANNEL     = CONFIG.slack_channel
+RTT_API_USERNAME  = CONFIG.rtt_api_username
+RTT_API_PASSWORD  = CONFIG.rtt_api_password
+RTT_API_BASE      = CONFIG.rtt_api_base
+RTT_API_PREFIX    = CONFIG.rtt_api_prefix
 
 class SlackPost
-  def initialize(morning_commute=true, budge=0)
-    header = "Hello! Here's how your #{morning_commute ? 'morning' : 'evening'} commute looks today:"
+  def initialize(is_morning_commute=true, budge=0)
+    header = "Hello! Here's how your #{is_morning_commute ? 'morning' : 'evening'} commute looks today:"
     datetime = Time.now + budge.minutes
     attachments = (morning_commute ? [
         TrainLine.new('FTN', from: 'GLD', datetime: datetime), # Waterloo-Guildford-Portsmouth
