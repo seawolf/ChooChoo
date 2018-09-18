@@ -113,15 +113,7 @@ class TrainLine
     station_at    = api_call.body['location']['name']
     station_to    = api_call.body.fetch('filter', {}).fetch('destination', {})['name']
 
-    str = "Querying for train services at #{station_at}"
-    str << ", from #{station_from}" if station_from
-    str << ", to #{station_to}" if station_to
-    str.strip!
-    str << ":"
-
-    str[0] = str[0].upcase
-
-    str
+    [ station_from, station_at, station_to ].reject(&:blank?).join(" - ")
   end
 
   def heavy_delays?
