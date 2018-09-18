@@ -49,6 +49,7 @@ class SlackPost
   def summary_for_data(data)
     strs = []
 
+    strs << "There are no services scheduled." if data.summary_data[:none]
 
     data.summary_data[:cancellations].inject({}) do |cancellations, cancellations_entry|
       if cancellations_entry[:cancellations].any?
@@ -97,7 +98,9 @@ class SlackPost
   end
 
   def attachment_colour_for_data(data)
-    if data.cancellations? || data.heavy_delays?
+    if data.no_services?
+      "#e8e8e8"
+    elsif data.cancellations? || data.heavy_delays?
       "#d72b3f"
     elsif data.light_delays?
       "#ffc965"
@@ -129,6 +132,10 @@ class TrainLine
     [ station_from, station_at, station_to ].reject(&:blank?).join(" - ")
   end
 
+  def no_services?
+    summary_data[:none]
+  end
+
   def cancellations?
     summary_data[:cancellations].any?
   end
@@ -146,7 +153,8 @@ class TrainLine
 
   def summary_data
     @_summary_data ||= begin
-      groups = { cancellations: [], zero: [], low: [], high: [] }
+      groups = { none: results.empty?, cancellations: [], zero: [], low: [], high: [] }
+
       memo = results.inject(groups) do |memo, (operator, services)|
         cancellations = services.map {|srv| srv[:cancellation] }.compact
         avg_delay_mins = services.sum {|srv| srv[:delay_mins]} / services.count
@@ -199,7 +207,7 @@ class TrainLine
   end
 
   def results
-    @_results ||= api_call.body.fetch('services', []).map do |srv|
+    @_results ||= api_call.body.fetch('services', nil).to_a.map do |srv|
       next unless srv['locationDetail']['realtimeDeparture']
 
       headcode    = srv['runningIdentity']
