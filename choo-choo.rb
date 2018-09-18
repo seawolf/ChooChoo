@@ -49,11 +49,19 @@ class SlackPost
   def summary_for_data(data)
     strs = []
 
-    strs << "Services by #{data.summary_data[:cancellations].literate_join} are experiencing cancellations." if data.summary_data[:cancellations].any?
 
-    strs << "Services by #{data.summary_data[:zero].literate_join} are running to time." if data.summary_data[:zero].any?
-
-    strs << "Services by #{data.summary_data[:low].literate_join} are running without significant delay." if data.summary_data[:low].any?
+    data.summary_data[:cancellations].inject({}) do |cancellations, cancellations_entry|
+      if cancellations_entry[:cancellations].any?
+        cancellations[cancellations_entry[:operator]] ||= []
+        cancellations[cancellations_entry[:operator]].concat(cancellations_entry[:cancellations])
+        cancellations[cancellations_entry[:operator]].uniq!
+      end
+      cancellations
+    end.tap do |cancellation_operators|
+      cancellation_operators.each do |operator, cancellations|
+        strs << "Services from #{operator} are experiencing cancellations due to #{cancellations.literate_join}." if cancellations.any?
+      end
+    end
 
     data.summary_data[:high].group_by do |high_entry|
       high_entry[:avg_delay_mins]
@@ -63,6 +71,9 @@ class SlackPost
         strs << "Services from #{delayed_operators.collect {|operator| operator[:operator] }.literate_join} are running with an average delay of #{avg_delay_mins} minutes."
       end
     end
+    strs << "Services by #{data.summary_data[:low].literate_join} are running without significant delay." if data.summary_data[:low].any?
+
+    strs << "Services by #{data.summary_data[:zero].literate_join} are running to time." if data.summary_data[:zero].any?
 
     strs.join("\n")
   end
@@ -122,35 +133,31 @@ class TrainLine
     summary_data[:cancellations].any?
   end
   def heavy_delays?
-    summary_data[:cancellations].none? &&
     summary_data[:high].any?
   end
   def light_delays?
-    summary_data[:cancellations].none? &&
-    summary_data[:high].none? &&
     summary_data[:low].any?
   end
   def no_delays?
-    summary_data[:cancellations].none? &&
-    summary_data[:high].none? &&
-    summary_data[:low].none?
-    # summary_data[:zero].any?
+    !cancellations? &&
+    !heavy_delays? &&
+    !light_delays?
   end
 
   def summary_data
     @_summary_data ||= begin
       groups = { cancellations: [], zero: [], low: [], high: [] }
       memo = results.inject(groups) do |memo, (operator, services)|
-        cancellations = services.any? {|srv| srv[:cancelled] }
+        cancellations = services.map {|srv| srv[:cancellation] }.compact
         avg_delay_mins = services.sum {|srv| srv[:delay_mins]} / services.count
 
-        if cancellations
-          memo[:cancellations] << operator
+        if cancellations.any?
+          memo[:cancellations] << { operator: operator, cancellations: cancellations }
         elsif avg_delay_mins > 5
           memo[:high] << { operator: operator, avg_delay_mins: avg_delay_mins }
         elsif avg_delay_mins > 3
           memo[:low] << operator
-        else
+        elsif avg_delay_mins <= 3
           memo[:zero] << operator
         end
 
@@ -211,8 +218,7 @@ class TrainLine
       actual      = datetime.change(hour: actual[0..1], min: actual[2..3])
 
       delay_mins  = (actual.to_i - scheduled.to_i) / 60
-
-      cancelled   = srv['locationDetail']['cancelReasonCode'].present?
+      canx        = srv['locationDetail']['cancelReasonLongText'].presence
 
       {
           headcode:     headcode,
@@ -222,7 +228,7 @@ class TrainLine
           scheduled:    scheduled,
           actual:       actual,
           delay_mins:   delay_mins,
-          cancelled:    cancelled
+          cancellation: canx
       }
     end.compact.sort_by do |srv|
       srv[:scheduled]
