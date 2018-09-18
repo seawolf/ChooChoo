@@ -49,6 +49,8 @@ class SlackPost
   def summary_for_data(data)
     strs = []
 
+    strs << "Services by #{data.summary_data[:cancellations].literate_join} are experiencing cancellations." if data.summary_data[:cancellations].any?
+
     strs << "Services by #{data.summary_data[:zero].literate_join} are running to time." if data.summary_data[:zero].any?
 
     strs << "Services by #{data.summary_data[:low].literate_join} are running without significant delay." if data.summary_data[:low].any?
@@ -84,7 +86,7 @@ class SlackPost
   end
 
   def attachment_colour_for_data(data)
-    if data.heavy_delays?
+    if data.cancellations? || data.heavy_delays?
       "#d72b3f"
     elsif data.light_delays?
       "#ffc965"
@@ -116,14 +118,20 @@ class TrainLine
     [ station_from, station_at, station_to ].reject(&:blank?).join(" - ")
   end
 
+  def cancellations?
+    summary_data[:cancellations].any?
+  end
   def heavy_delays?
+    summary_data[:cancellations].none? &&
     summary_data[:high].any?
   end
   def light_delays?
+    summary_data[:cancellations].none? &&
     summary_data[:high].none? &&
     summary_data[:low].any?
   end
   def no_delays?
+    summary_data[:cancellations].none? &&
     summary_data[:high].none? &&
     summary_data[:low].none?
     # summary_data[:zero].any?
@@ -131,16 +139,19 @@ class TrainLine
 
   def summary_data
     @_summary_data ||= begin
-      groups = { zero: [], low:  [], high: [] }
+      groups = { cancellations: [], zero: [], low: [], high: [] }
       memo = results.inject(groups) do |memo, (operator, services)|
+        cancellations = services.any? {|srv| srv[:cancelled] }
         avg_delay_mins = services.sum {|srv| srv[:delay_mins]} / services.count
 
-        if avg_delay_mins < 3
-          memo[:zero] << operator
-        elsif avg_delay_mins <= 5
+        if cancellations
+          memo[:cancellations] << operator
+        elsif avg_delay_mins > 5
+          memo[:high] << { operator: operator, avg_delay_mins: avg_delay_mins }
+        elsif avg_delay_mins > 3
           memo[:low] << operator
         else
-          memo[:high] << { operator: operator, avg_delay_mins: avg_delay_mins }
+          memo[:zero] << operator
         end
 
         memo
@@ -201,6 +212,8 @@ class TrainLine
 
       delay_mins  = (actual.to_i - scheduled.to_i) / 60
 
+      cancelled   = srv['locationDetail']['cancelReasonCode'].present?
+
       {
           headcode:     headcode,
           operator:     operator,
@@ -208,7 +221,8 @@ class TrainLine
           destination:  destination,
           scheduled:    scheduled,
           actual:       actual,
-          delay_mins:   delay_mins
+          delay_mins:   delay_mins,
+          cancelled:    cancelled
       }
     end.compact.sort_by do |srv|
       srv[:scheduled]
