@@ -1,0 +1,7 @@
+---
+slack_channel: '#channel-name'
+slack_token: 'xoxo-123'
+rtt_api_username: 'john.doe'
+rtt_api_password: 'abc123'
+rtt_api_base: 'https://api.rtt.io'
+rtt_api_prefix: '/api/v1'
