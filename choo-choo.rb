@@ -14,9 +14,9 @@ RTT_API_BASE      = config.rtt_api_base
 RTT_API_PREFIX    = config.rtt_api_prefix
 
 class SlackPost
-  def initialize(morning_commute=true)
+  def initialize(morning_commute=true, budge=0)
     header = "Hello! Here's how your #{morning_commute ? 'morning' : 'evening'} commute looks today:"
-    datetime = Time.now
+    datetime = Time.now + budge.minutes
     attachments = (morning_commute ? [
         TrainLine.new('FTN', from: 'GLD', datetime: datetime), # Waterloo-Guildford-Portsmouth
         TrainLine.new('FTN', from: 'BTN', datetime: datetime), # Brighton-Portsmouth
@@ -261,7 +261,7 @@ class Array
 end
 
 if ARGV.include?('--morning')
-  SlackPost.new(true)
+  SlackPost.new(true, 15)
 elsif ARGV.include?('--evening')
-  SlackPost.new(false)
+  SlackPost.new(false, 15)
 end
