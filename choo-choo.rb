@@ -6,9 +6,10 @@ require_relative './lib/config'
 require_relative './lib/api_call'
 require_relative './lib/slack_post'
 require_relative './lib/train_line'
+require_relative './lib/train_line_slack_post'
 
 if ARGV.include?('--morning')
-  SlackPost.new(true, 15)
+  TrainLineSlackPost.new(true, 15)
 elsif ARGV.include?('--evening')
-  SlackPost.new(false, 15)
+  TrainLineSlackPost.new(false, 15)
 end
