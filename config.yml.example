@@ -6,6 +6,10 @@ rtt_api_password: 'abc123'
 rtt_api_base: 'https://api.rtt.io'
 rtt_api_prefix: '/api/v1'
 
+delays:
+  low: 3
+  high: 5
+
 routes:
 
   morning:

@@ -49,11 +49,11 @@ class TrainLine
 
         if cancellations.any?
           memo[:cancellations] << { operator: operator, cancellations: cancellations }
-        elsif avg_delay_mins > 5
+        elsif avg_delay_mins > CONFIG.delays.high
           memo[:high] << { operator: operator, avg_delay_mins: avg_delay_mins }
-        elsif avg_delay_mins > 3
+        elsif avg_delay_mins > CONFIG.delays.low
           memo[:low] << operator
-        elsif avg_delay_mins <= 3
+        elsif avg_delay_mins <= CONFIG.delays.low
           memo[:zero] << operator
         end
 
