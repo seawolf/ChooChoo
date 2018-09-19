@@ -1,14 +1,19 @@
 class SlackPost
-  def initialize(message, attachments)
+  GREY    = "#e8e8e8"
+  RED     = "#d72b3f"
+  YELLOW  = "#ffc965"
+  GREEN   = "#36a64f"
+
+  def initialize(message, attachments = [])
     @_message = message
     @_attachments = attachments
   end
 
   def post!
-    @post = post_to_slack
+    post_to_slack(message, attachments)
   rescue => e
     msg = "I'm sorry, but something went wrong. Please try again!"
-    @post = post_to_slack(message: msg, attachments: [
+    post_to_slack(msg, [
         {
             "fallback": e.message,
             "color": "#d72b3f",
@@ -30,7 +35,7 @@ class SlackPost
     @_attachments
   end
 
-  def post_to_slack(message: message, attachments: [])
+  def post_to_slack(message, attachments)
     slack_client.chat_postMessage(channel: CONFIG.slack_channel, text: message, attachments: JSON.dump(attachments))
   end
 

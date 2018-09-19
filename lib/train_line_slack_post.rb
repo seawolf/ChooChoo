@@ -1,15 +1,27 @@
 class TrainLineSlackPost
   def initialize(is_morning_commute=true, budge=0)
-    header = "Hello! Here's how your #{is_morning_commute ? 'morning' : 'evening'} commute looks today:"
-    datetime = Time.now + budge.minutes
-    attachments = attachments(is_morning_commute, datetime).map do |data|
+    @_is_morning_commute = is_morning_commute
+    @_datetime = Time.now + budge.minutes
+
+    header = "Hello! Here's how your #{is_morning_commute? ? 'morning' : 'evening'} commute looks today:"
+    messages = attachments.map do |data|
       attachment_for_data(data)
     end
 
-    @_slack_post = SlackPost.new(header, attachments).tap(&:post!)
+    messages << filtering_warning if filtering_warning
+
+    @_slack_post = SlackPost.new(header, messages).tap(&:post!)
   end
 
   private
+
+  def is_morning_commute?
+    @_is_morning_commute
+  end
+
+  def datetime
+    @_datetime
+  end
 
   def summary_for_data(data)
     strs = []
@@ -44,10 +56,12 @@ class TrainLineSlackPost
     strs.join("\n")
   end
 
-  def attachments(is_morning_commute, datetime)
-    (is_morning_commute ? CONFIG.routes.fetch(:morning) : CONFIG.routes.fetch(:evening)).inject([]) do |attachments, line|
-      args = { at: line['at'], from: line['from'], to: line['to'], datetime: datetime }.keep_if {|k, v| v.present? }
-      attachments << TrainLine.new(args)
+  def attachments
+    @_attachments ||= begin
+      (is_morning_commute? ? CONFIG.routes.morning : CONFIG.routes.evening).inject([]) do |attachments, line|
+        args = { at: line['at'], from: line['from'], to: line['to'], datetime: datetime }.keep_if {|k, v| v.present? }
+        attachments << TrainLine.new(args)
+      end
     end
   end
 
@@ -62,15 +76,29 @@ class TrainLineSlackPost
     }
   end
 
+  def filtering_warning
+    warning = attachments.first&.filtering_warning
+    if warning
+      {
+          "fallback": warning,
+          "color": SlackPost::RED,
+          "title": "Warning",
+          "text": warning,
+          "footer": "Powered by <http://www.realtimetrains.co.uk|Realtime Trains>",
+          "ts": datetime.to_i
+      }
+    end
+  end
+
   def attachment_colour_for_data(data)
     if data.no_services?
-      "#e8e8e8"
+      SlackPost::GREY
     elsif data.cancellations? || data.heavy_delays?
-      "#d72b3f"
+      SlackPost::RED
     elsif data.light_delays?
-      "#ffc965"
+      SlackPost::YELLOW
     else # data.no_delays?
-      "#36a64f"
+      SlackPost::GREEN
     end
   end
 end

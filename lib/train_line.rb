@@ -4,8 +4,6 @@ class TrainLine
     @_at_crs   = at
     @_to_crs   = to
     @_datetime = datetime
-
-    puts filtering_warning if filtering_warning
   end
 
   def datetime
@@ -18,6 +16,11 @@ class TrainLine
     station_to    = api_call.body.fetch('filter', {}).fetch('destination', {})['name']
 
     [ station_from, station_at, station_to ].reject(&:blank?).join(" - ")
+  end
+
+  def filtering_warning
+    "Sorry, we can't currently support filtering services by previous or later calling points if they ran over a day ago." if
+        datetime < (Time.now - 1.day) && (from_crs || to_crs)
   end
 
   def no_services?
@@ -89,11 +92,6 @@ class TrainLine
     str << "/from/#{from_crs}"  if from_crs
     str << "/to/#{to_crs}"      if to_crs
     str
-  end
-
-  def filtering_warning
-    "Sorry, we can't currently support filtering services by previous or later calling points if they ran over a day ago." if
-        datetime < (Time.now - 1.day) && (from_crs || to_crs)
   end
 
   def results
