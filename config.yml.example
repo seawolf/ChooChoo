@@ -6,18 +6,20 @@ rtt_api_password: 'abc123'
 rtt_api_base: 'https://api.rtt.io'
 rtt_api_prefix: '/api/v1'
 
-morning:
-- at: STN
-  from: ABC
-- at: STN
-  from: DEF
-- at: STN
-  to: ZZZ
+routes:
 
-evening:
-- at: ABC
-  from: AAA
-  to: STN
-- at: DEF
-  from: ZZZ
-  to: STN
+  morning:
+  - at: STN
+    from: ABC
+  - at: STN
+    from: DEF
+  - at: STN
+    to: ZZZ
+
+  evening:
+  - at: ABC
+    from: AAA
+    to: STN
+  - at: DEF
+    from: ZZZ
+    to: STN

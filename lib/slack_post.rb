@@ -65,7 +65,7 @@ class SlackPost
   end
 
   def attachments(is_morning_commute, datetime)
-    (is_morning_commute ? CONFIG.morning : CONFIG.evening).inject([]) do |attachments, line|
+    (is_morning_commute ? CONFIG.routes.fetch(:morning) : CONFIG.routes.fetch(:evening)).inject([]) do |attachments, line|
       args = { at: line['at'], from: line['from'], to: line['to'], datetime: datetime }.keep_if {|k, v| v.present? }
       attachments << TrainLine.new(args)
     end
