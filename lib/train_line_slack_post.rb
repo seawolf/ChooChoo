@@ -71,8 +71,6 @@ class TrainLineSlackPost
         "color": attachment_colour_for_data(data),
         "title": data.request_info,
         "text": summary_for_data(data),
-        "footer": "Powered by <http://www.realtimetrains.co.uk|Realtime Trains>",
-        "ts": data.datetime.to_i
     }
   end
 
@@ -84,8 +82,6 @@ class TrainLineSlackPost
           "color": SlackPost::RED,
           "title": "Warning",
           "text": warning,
-          "footer": "Powered by <http://www.realtimetrains.co.uk|Realtime Trains>",
-          "ts": datetime.to_i
       }
     end
   end

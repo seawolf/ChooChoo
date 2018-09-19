@@ -27,3 +27,14 @@ routes:
   - at: DEF
     from: ZZZ
     to: STN
+
+journeys:
+  morning_station: ABC
+  morning:
+  - W12345
+  - U67890
+  evening_station: XYZ
+  evening:
+  - U98765
+  - dep: W54321 # outbound
+    arr: W43210 # inbound
