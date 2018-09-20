@@ -39,9 +39,21 @@ class TrainSlackPost
     @_attachments ||= begin
       location = is_morning_commute? ? CONFIG.journeys.morning_station : CONFIG.journeys.evening_station
       (is_morning_commute? ? CONFIG.journeys.morning : CONFIG.journeys.evening).inject([]) do |attachments, journey|
-        journey = journey["dep"] if journey.is_a?(Hash)
-        args = { uid: journey, at_crs: location, datetime: datetime }
-        attachments << Train.new(args)
+        if journey.is_a?(Hash)
+          arrival = journey["arr"] && begin
+            args = { uid: journey["arr"], datetime: datetime }
+            Train.new(args)
+          end
+          departure = journey["dep"] && begin
+            args = { uid: journey["dep"], at_crs: location, datetime: datetime }
+            Train.new(args)
+          end
+          attachments << arrival if arrival
+          attachments << departure if departure
+        else
+          args = { uid: journey, at_crs: location, datetime: datetime }
+          attachments << Train.new(args)
+        end
       end
     end
   end
