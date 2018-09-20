@@ -12,8 +12,10 @@ require_relative './lib/train_line_slack_post'
 
 if ARGV.include?('--morning')
   TrainLineSlackPost.new(true, 15)
-  TrainSlackPost.new(true, 15)
-elsif ARGV.include?('--evening')
+  TrainSlackPost.new(true, 15) unless ARGV.include?('--summary-only')
+end
+
+if ARGV.include?('--evening')
   TrainLineSlackPost.new(false, 15)
-  TrainSlackPost.new(false, 15)
+  TrainSlackPost.new(false, 15) unless ARGV.include?('--summary-only')
 end
