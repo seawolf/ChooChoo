@@ -1,5 +1,5 @@
 class Train
-  def initialize(uid:, at_crs:, datetime: Time.now)
+  def initialize(uid:, at_crs: nil, datetime: Time.now)
     @_uid       = uid
     @_at_crs    = at_crs
     @_datetime  = datetime
@@ -18,11 +18,11 @@ class Train
   end
 
   def cancellation
-    result[:cancellation]
+      result[:cancellation]
   end
 
   def delay_mins
-    result[:delay_mins]
+    result[:delay_mins].to_i
   end
 
   def no_service?
@@ -33,10 +33,10 @@ class Train
     !no_service? && result[:cancellation].presence
   end
   def heavily_delayed?
-    !no_service? && result[:delay_mins] > CONFIG.delays.high
+    !no_service? && result[:delay_mins].to_i > CONFIG.delays.high
   end
   def lightly_delayed?
-    !no_service? && result[:delay_mins] > CONFIG.delays.low
+    !no_service? && result[:delay_mins].to_i > CONFIG.delays.low
   end
   def not_delayed?
     !cancelled? &&
@@ -68,7 +68,7 @@ class Train
     @_result ||= begin
       srv = api_call.body
 
-      return nil unless srv['serviceUid'].to_s == uid
+      return {} unless srv['serviceUid'].to_s == uid
 
       headcode    = srv['runningIdentity']
       operator    = srv['atocName']
@@ -80,16 +80,13 @@ class Train
         destination['description']
       end.literate_join
 
-      location    = srv['locations'].find do |location|
+      locations   = srv.fetch('locations', [])
+      location    = at_crs ? locations.find do |location|
         location['crs'] == at_crs
-      end
+      end : locations.first || srv['origin'].first
 
-      return nil unless location
-
-      scheduled   = location['gbttBookedDeparture']
-      actual      = location['realtimeDeparture']
-
-      return nil unless location['realtimeDeparture']
+      scheduled   = location['gbttBookedDeparture'] || location['workingTime']
+      actual      = location['realtimeDeparture'] || location['workingTime']
 
       scheduled   = datetime.change(hour: scheduled[0..1], min: scheduled[2..3])
       actual      = datetime.change(hour: actual[0..1], min: actual[2..3])
