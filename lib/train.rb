@@ -10,6 +10,10 @@ class Train
   end
 
   def request_info
+    if no_service?
+      return "#{uid} on #{datetime.strftime("%d/%m/%Y")}"
+    end
+
     station_at    = result[:location]
     time_at       = result[:scheduled]
     station_to    = result[:destination]
@@ -18,7 +22,7 @@ class Train
   end
 
   def cancellation
-      result[:cancellation]
+    result[:cancellation]
   end
 
   def delay_mins
@@ -26,7 +30,7 @@ class Train
   end
 
   def no_service?
-    result.nil?
+    result.empty?
   end
 
   def cancelled?
